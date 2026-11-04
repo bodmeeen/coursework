@@ -1,9 +1,16 @@
 import { createApp } from 'vue'
+import './assets/main.css'
 import App from './App.vue'
-import router from './router'
 
+// Імпортування налаштувань роутера
+// import router from './router'
+
+
+// Створення додатку та тимчасовий запис його в змінну
 const app = createApp(App)
 
-app.use(router)
+// Об'єднання додатка з роутером
+// app.use(router)
 
+// Запуск додатку та відображення його на сторінці
 app.mount('#app')
