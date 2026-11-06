@@ -1,7 +1,5 @@
 use sqlx::sqlite::SqlitePoolOptions;
 use sqlx::SqlitePool;
-use std::net::SocketAddr;
-use std::collections::HashMap;
 use tower_http::cors::{Any, CorsLayer};
 
 use axum::{
@@ -59,8 +57,7 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn upload_csv( State(state): State<AppState>, mut multipart: Multipart) -> Result<impl IntoResponse, (StatusCode, String)> {
-    // Пошук поля "file" з Vue
+async fn upload_csv(mut multipart: Multipart) -> Result<impl IntoResponse, (StatusCode, String)> {
     while let Some(field) = multipart.next_field().await.unwrap_or(None) {
         if field.name() == Some("file") {
             // Витягування сирих байтів файлу
@@ -70,7 +67,7 @@ async fn upload_csv( State(state): State<AppState>, mut multipart: Multipart) ->
 
             // Закидання байтів в CSV парсер
             let mut rdr = csv::Reader::from_reader(data.as_ref());
-            let mut records: Vec<HashMap<String, String>> = Vec::new();
+            let mut records: Vec<std::collections::HashMap<String, String>> = Vec::new();
 
             // Читання рядків
             for result in rdr.deserialize() {
@@ -80,13 +77,23 @@ async fn upload_csv( State(state): State<AppState>, mut multipart: Multipart) ->
                 }
             }
 
-            let response = serde_json::json!({
-                "status": "ok",
-                "rows_processed": records.len(),
-                "data": records
-            });
+            // Відправка даних в пайтон сервіс
+            let client = reqwest::Client::new();
+            let py_response = client
+                .post("http://localhost:8000/analyze")
+                .json(&serde_json::json!({ "data": records }))
+                .send()
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Помилка Python сервісу: {}", e)))?;
 
-            return Ok(Json(response));
+            // Отримання результату від пайтона
+            let final_json: serde_json::Value = py_response
+                .json()
+                .await
+                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Помилка парсингу відповіді: {}", e)))?;
+
+            // Відправка готового результату на Vue фронтенд
+            return Ok(axum::Json(final_json));
         }
     }
 
