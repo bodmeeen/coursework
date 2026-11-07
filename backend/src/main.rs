@@ -1,58 +1,27 @@
-use sqlx::sqlite::SqlitePoolOptions;
-use sqlx::SqlitePool;
 use tower_http::cors::{Any, CorsLayer};
 
 use axum::{
-    extract::{Multipart, State},
+    extract::Multipart,
     http::{Method, StatusCode},
     response::IntoResponse,
     routing::post,
-    Json, Router,
+    Router,
 };
-
-pub mod routes;
-
-#[derive(Clone)]
-pub struct AppState {
-    pub db: SqlitePool,
-}
 
 #[tokio::main]
 async fn main() {
 
-    dotenvy::dotenv().ok();
-    let db_url = std::env::var("DATABASE_URL").expect("Не знайдено DATABASE_URL");
-
-    let pool = match SqlitePoolOptions::new()
-    .max_connections(5)
-    .connect(&db_url)
-    .await
-    {
-        Ok(pool) => {
-            println!("Успішно під'єднано до БД");
-            pool
-        }
-        Err(err) => {
-            println!("Помилка при підключенні до БД: {}", err);
-            std::process::exit(1);
-        }
-    };
-
-    let state = AppState { db: pool };
-
-
     let cors = CorsLayer::new()
     // Дозволити запити з будь-яких адрес
     .allow_origin(Any)
-    .allow_methods([Method::GET, Method::POST, Method:: PUT, Method::PATCH, Method::DELETE])
+    .allow_methods([Method::GET, Method::POST])
     .allow_headers(Any);
 
     let app = Router::new()
         .route("/upload", post(upload_csv))
-        .layer(cors)
-        .with_state(state);
+        .layer(cors);
 
-    println!("Працює http://localhost:3000");
+    println!("Працює на http://localhost:3000");
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }

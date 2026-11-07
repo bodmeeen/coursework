@@ -61,7 +61,6 @@
         <table class="w-full text-sm text-left text-gray-600">
           <thead class="text-xs text-gray-700 uppercase bg-gray-100">
             <tr>
-              <!-- Розділені заголовки -->
               <th class="px-4 py-3 w-16">ID</th>
               <th class="px-4 py-3 w-20">Рейтинг</th>
               <th class="px-4 py-3 w-1/2">Текст відгуку</th>
@@ -71,7 +70,6 @@
           </thead>
           <tbody>
             <tr v-for="(row, index) in analysisResults" :key="index" class="border-b hover:bg-gray-50">
-              <!-- Розділені комірки з даними -->
               <td class="px-4 py-3 font-medium text-gray-900">
                 #{{ row.user_id || index + 1 }}
               </td>
